@@ -1,3 +1,14 @@
+import librosa
+import pretty_midi
+import numpy as np
+import pandas as pd
+import json
+
+from pathlib import Path
+from typing import Optional
+from constants import *
+from helpers import *
+
 
 class MAESTRODataLoader:
     """
@@ -66,7 +77,7 @@ class MAESTRODataLoader:
         self,
         pair: dict,
         start_sec: Optional[float] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Load one (audio_clip, piano_roll) pair.
 

@@ -1,3 +1,9 @@
+import librosa
+import numpy as np
+
+from constants import *
+from helpers import *
+
 
 class Augmentor:
     """
@@ -40,7 +46,7 @@ class Augmentor:
         self,
         audio: np.ndarray,
         piano_roll: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Apply random augmentations.
 

@@ -1,3 +1,5 @@
+import numpy as np
+
 
 def _pad_or_trim(audio: np.ndarray, length: int) -> np.ndarray:
     if len(audio) >= length:
