@@ -5,7 +5,7 @@ import pandas as pd
 import json
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 from constants import *
 from helpers import *
 
@@ -31,7 +31,7 @@ class MAESTRODataLoader:
     def __init__(
         self,
         maestro_root: str,
-        year: int = 2018,
+        year: int | list[int] | Literal['all'] = 2018,
         sr: int = SAMPLE_RATE,
         clip_duration: float = CLIP_DURATION,
         piano_roll_fs: int = PIANO_ROLL_FS,
@@ -51,13 +51,21 @@ class MAESTRODataLoader:
             meta = json.load(f)
         self.metadata = pd.DataFrame(meta)
 
-    def get_pairs(self, split: str = "train") -> List[dict]:
+        # Ensure we always store a list-like in self.year
+        if isinstance(year, int):
+            self.year = [year]
+        if year == 'all':
+            self.year = [2004, 2006, 2008, 2009, 2011, 2013, 2014, 2015, 2017, 2018]
+
+
+    def get_pairs(self, split: str = "train") -> list[dict]:
         """
         Returns list of {audio_path, midi_path, duration} dicts for a split.
         split: 'train' | 'validation' | 'test'
         """
         subset = self.metadata[self.metadata["split"] == split]
-        subset = subset[self.metadata['year'] == self.year]
+        # Only get data for a specific (list of) year(s) or all
+        subset = subset[self.metadata['year'].isin(self.year)]
         pairs = []
         for _, row in subset.iterrows():
             bb_audio_root = Path('data/mp3s')
