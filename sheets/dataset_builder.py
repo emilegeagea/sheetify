@@ -37,10 +37,8 @@ def build_tf_dataset(
         for pair in pairs:
             try:
                 audio, roll = dataloader.load_pair(pair)
-                if augmentor:
-                    audio, roll = augmentor(audio, roll)
-                cqt = preprocessor.compute(audio)
-                yield cqt, roll
+                preproc = preprocessor.compute(audio)
+                yield preproc, roll
             except Exception as e:
                 print(f"[Warning] Skipping {pair['audio_path']}: {e}")
                 continue
@@ -62,8 +60,12 @@ def build_tf_dataset(
 
     dataset = (
         dataset
-        .batch(batch_size, drop_remainder=True)
-        .prefetch(prefetch)
+        .batch(
+            batch_size,
+            drop_remainder=False # TODO: Investigate whether this should be True or False
+                                 # When True, the model.fit raises a math.domain exception on a logarithm
+                                 # The cause of this is unknown
+        ).prefetch(prefetch)
     )
 
     return dataset

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Literal
 
 from sheets.constants import *
-from sheets.helpers import *
+import sheets.helpers as helpers
 
 
 class MAESTRODataLoader:
@@ -117,7 +117,7 @@ class MAESTRODataLoader:
             offset=start_sec,
             duration=self.clip_duration,
         )
-        audio = _pad_or_trim(audio, self.clip_samples)
+        audio = helpers.pad_or_trim(audio, self.clip_samples)
 
         # ── Piano roll from MIDI ───────────────────────
         midi = pretty_midi.PrettyMIDI(pair["midi_path"])
@@ -134,6 +134,6 @@ class MAESTRODataLoader:
 
         # Pad time axis if needed
         target_frames = int(self.clip_duration * self.piano_roll_fs)
-        roll = _pad_or_trim_2d(roll, target_frames, axis=1)
+        roll = helpers.pad_or_trim_2d(roll, target_frames, axis=1)
 
         return audio.astype(np.float32), roll

@@ -37,12 +37,28 @@ def initialize_model(
     # or a robust Lambda wrapper that plays perfectly with the standard compiler graph.
     x = tf.keras.layers.Lambda(lambda t: tf.reduce_mean(t, axis=1))(x) # Shape becomes: (None, 78, 256)
 
+
+
+    # --- Add Positional Tracking for the Transformer ---
+    # 1. Instantiate the embedding layer OUTSIDE so Keras tracks its weights
+    pos_embedding_layer = tf.keras.layers.Embedding(input_dim=400, output_dim=256)
+
+    # 2. Use a Lambda layer to wrap the raw TensorFlow ops (tf.shape, tf.range)
+    x = tf.keras.layers.Lambda(
+        lambda t: t + pos_embedding_layer(tf.range(0, tf.shape(t)[1], 1))
+    )(x)
+
+
+
+
+
     # --- Add Positional Tracking for the Transformer ---
     # Ensures the attention block knows the exact order of your 78 chronological slices.
-    seq_len = 78
-    pos_indices = tf.range(start=0, limit=seq_len, delta=1)
-    pos_embed = tf.keras.layers.Embedding(input_dim=seq_len, output_dim=256)(pos_indices)
-    x = x + pos_embed  # Pure (None, 78, 256) sequential data
+    # seq_len = tf.shape(x)[1]
+    # pos_indices = tf.range(start=0, limit=seq_len, delta=1)
+    # pos_embed = tf.keras.layers.Embedding(input_dim=200, output_dim=256)(pos_indices)
+    # x = x + pos_embed  # Pure (None, 78, 256) sequential data
+
 
     # --- Transformer Block ---
     x = tf.keras.layers.MultiHeadAttention(num_heads=8, key_dim=64)(x, x)
