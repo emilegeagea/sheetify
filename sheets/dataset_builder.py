@@ -1,13 +1,16 @@
 import tensorflow as tf
 
-from sheets.augmentor import *
+from sheets.augmentor import Augmentor
+from sheets.preprocessors import Preprocessor
+from sheets.dataloader import MAESTRODataLoader
+
 from sheets.constants import *
-from sheets.dataloader import *
-from sheets.preprocessors import *
 
 
 def build_tf_dataset(
-    maestro_root: str,
+    dataloader: MAESTRODataLoader,
+    preprocessor: Preprocessor,
+    augementor: Augmentor | None = None,
     split: str = "train",
     batch_size: int = 16,
     augment: bool = False,
@@ -18,7 +21,6 @@ def build_tf_dataset(
     Full pipeline: MAESTRO files → batched tf.data.Dataset of (CQT, piano_roll).
 
     Args:
-        maestro_root  : path to maestro-v3.0.0/ directory
         split         : 'train' | 'validation' | 'test'
         batch_size    : number of clips per batch
         augment       : apply augmentations (train only recommended)
@@ -29,16 +31,12 @@ def build_tf_dataset(
             cqt        : float32 tensor (batch, N_BINS, time_frames, 1)
             piano_roll : float32 tensor (batch, 88, piano_roll_frames)
     """
-    loader = MAESTRODataLoader(maestro_root)
-    preprocessor = CQTPreprocessor()
-    augmentor = Augmentor() if augment else None
-
-    pairs = loader.get_pairs(split)
+    pairs = dataloader.get_pairs(split)
 
     def generator():
         for pair in pairs:
             try:
-                audio, roll = loader.load_pair(pair)
+                audio, roll = dataloader.load_pair(pair)
                 if augmentor:
                     audio, roll = augmentor(audio, roll)
                 cqt = preprocessor.compute(audio)

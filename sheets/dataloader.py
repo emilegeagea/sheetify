@@ -33,12 +33,14 @@ class MAESTRODataLoader:
         self,
         maestro_root: str = './data',
         year: int | list[int] | Literal['all'] = 2018,
+        limit: int | None = None,
         sr: int = SAMPLE_RATE,
         clip_duration: float = CLIP_DURATION,
         piano_roll_fs: int = PIANO_ROLL_FS,
     ):
         self.root = Path(maestro_root)
         self.year = year
+        self.limit = limit
         self.sr = sr
         self.clip_duration = clip_duration
         self.clip_samples = int(sr * clip_duration)
@@ -62,7 +64,6 @@ class MAESTRODataLoader:
     def get_pairs(
         self,
         split: str = "train",
-        limit: int | None = None,
         ) -> list[dict]:
         """
         Returns list of {audio_path, midi_path, duration} dicts for a split.
@@ -74,13 +75,13 @@ class MAESTRODataLoader:
         pairs = []
         for _, row in subset.iterrows():
             pairs.append({
-                "audio_path": str(self.root / 'midis' / row['audio_filename'].replace('.wav', '.mp3')),
-                "midi_path":  str(self.root / 'mp3s'  / row["midi_filename"]),
-                "duration":   row["duration"],
+                "audio_path": str(self.root / 'mp3s' / row['audio_filename'].replace('.wav', '.mp3')),
+                "midi_path": str(self.root / 'midis' / row["midi_filename"]),
+                "duration": row["duration"],
             })
 
-        if limit is not None:
-            pairs = pairs[:limit]
+        if self.limit is not None:
+            pairs = pairs[:self.limit]
 
         print(f"[MAESTRODataLoader] {split}: {len(pairs)} files found.")
         return pairs
