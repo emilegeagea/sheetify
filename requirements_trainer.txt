@@ -1,0 +1,13 @@
+tensorflow
+numpy
+arrow
+colorama
+librosa
+matplotlib
+mlflow
+pandas
+pillow
+pretty_midi
+pyarrow
+scikit-learn
+scipy
