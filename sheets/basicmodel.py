@@ -103,11 +103,11 @@ def train_model(
     model: tf.keras.Model,
     X: np.ndarray,
     y: np.ndarray,
-    epochs=10,
-    batch_size=256,
-    patience=2,
+    epochs: int = 10,
+    batch_size: int = 256,
+    patience: int = 2,
     validation_data=None, # overrides validation_split
-    validation_split=0.3
+    validation_split: float = 0.3
     ) -> tuple[tf.keras.Model, dict]:
     print(Fore.BLUE + "\nTraining model..." + Style.RESET_ALL)
 
