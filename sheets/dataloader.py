@@ -30,7 +30,7 @@ class MAESTRODataLoader:
 
     def __init__(
         self,
-        maestro_root: str,
+        maestro_root: str = './data',
         year: int | list[int] | Literal['all'] = 2018,
         sr: int = SAMPLE_RATE,
         clip_duration: float = CLIP_DURATION,
@@ -58,7 +58,11 @@ class MAESTRODataLoader:
             self.year = [2004, 2006, 2008, 2009, 2011, 2013, 2014, 2015, 2017, 2018]
 
 
-    def get_pairs(self, split: str = "train") -> list[dict]:
+    def get_pairs(
+        self,
+        split: str = "train",
+        limit: int | None = None,
+        ) -> list[dict]:
         """
         Returns list of {audio_path, midi_path, duration} dicts for a split.
         split: 'train' | 'validation' | 'test'
@@ -68,13 +72,9 @@ class MAESTRODataLoader:
         subset = subset[self.metadata['year'].isin(self.year)]
         pairs = []
         for _, row in subset.iterrows():
-            bb_audio_root = Path('data/mp3s')
-            bb_midi_root =  Path('data/midis')
-
-            audio_no_wav = row['audio_filename'].replace('.wav', '.mp3')
             pairs.append({
-                "audio_path": str(bb_audio_root / audio_no_wav),
-                "midi_path":  str(bb_midi_root / row["midi_filename"]),
+                "audio_path": str(self.root / 'midis' / row['audio_filename'].replace('.wav', '.mp3')),
+                "midi_path":  str(self.root / 'mp3s'  / row["midi_filename"]),
                 "duration":   row["duration"],
             })
         pairs = pairs[:2]
