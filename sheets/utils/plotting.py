@@ -33,15 +33,15 @@ def plot_pianoroll(piano_roll: np.ndarray) -> None:
     plt.show()
 
 
-def plot_history(history):
+def plot_history(history, metric_name: str = 'accuracy'):
     fig, ax = plt.subplots(1, 2, figsize=(15,5))
 
     ax[0].set_title('loss')
     ax[0].plot(history.epoch, history.history["loss"], label="Train loss")
     ax[0].plot(history.epoch, history.history["val_loss"], label="Validation loss")
-    ax[1].set_title('accuracy')
-    ax[1].plot(history.epoch, history.history["accuracy"], label="Train acc")
-    ax[1].plot(history.epoch, history.history["val_accuracy"], label="Validation acc")
+    ax[1].set_title(metric_name)
+    ax[1].plot(history.epoch, history.history[metric_name], label="Train " + metric_name)
+    ax[1].plot(history.epoch, history.history["val_" + metric_name], label="Validation " + metric_name)
     ax[0].legend()
     ax[1].legend()
 
