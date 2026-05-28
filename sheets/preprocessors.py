@@ -7,10 +7,19 @@ import matplotlib.pyplot as plt
 import pretty_midi
 import tensorflow as tf
 from pathlib import Path
-import constants.py
+
+from typing import override
+
+from sheets.constants import *
+from sheets.helpers import *
 
 
-class CQTPreprocessor:
+class Preprocessor:
+    def compute(self, audio: np.ndarray) -> np.ndarray:
+        pass
+
+
+class CQTPreprocessor(Preprocessor):
     """
     Converts raw audio waveform → log-CQT spectrogram.
 
@@ -36,6 +45,7 @@ class CQTPreprocessor:
         self.bins_per_octave = bins_per_octave
         self.fmin = fmin
 
+    @override
     def compute(self, audio: np.ndarray) -> np.ndarray:
         """
         Args:
@@ -151,7 +161,7 @@ class MELPreprocessor:
             offset=start_sec,
             duration=self.slice_duration,
         )
-        audio = self._pad_or_trim(audio)
+        audio = pad_or_trim(audio)
 
         # Compute mel spectrogram
         mel = self.compute_mel(audio)
@@ -164,7 +174,7 @@ class MELPreprocessor:
         roll = roll[:, frame_start:frame_end]
         roll = roll[PIANO_MIN_PITCH:PIANO_MAX_PITCH + 1, :]
         roll = (roll > 0).astype(np.float32)
-        roll = self._pad_or_trim_roll(roll)
+        roll = self.pad_or_trim_roll(roll)
 
         return mel, roll
 
@@ -276,15 +286,3 @@ class MELPreprocessor:
             all_mel_specs[:, :, i] = mel_db
 
         return all_mel_specs
-
-    # ── Helpers ────────────────────────────────────────────────────
-    def _pad_or_trim(self, audio: np.ndarray) -> np.ndarray:
-        if len(audio) >= self.clip_samples:
-            return audio[:self.clip_samples]
-        return np.pad(audio, (0, self.clip_samples - len(audio)))
-
-    def _pad_or_trim_roll(self, roll: np.ndarray) -> np.ndarray:
-        target = int(self.slice_duration * PIANO_ROLL_FS)
-        if roll.shape[1] >= target:
-            return roll[:, :target]
-        return np.pad(roll, ((0, 0), (0, target - roll.shape[1])))

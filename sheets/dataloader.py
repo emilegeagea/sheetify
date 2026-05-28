@@ -5,9 +5,10 @@ import pandas as pd
 import json
 
 from pathlib import Path
-from typing import Optional
-from constants import *
-from helpers import *
+from typing import Optional, Literal
+
+from sheets.constants import *
+from sheets.helpers import *
 
 
 class MAESTRODataLoader:
@@ -30,14 +31,16 @@ class MAESTRODataLoader:
 
     def __init__(
         self,
-        maestro_root: str,
-        year: int = 2018,
+        maestro_root: str = './data',
+        year: int | list[int] | Literal['all'] = 2018,
+        limit: int | None = None,
         sr: int = SAMPLE_RATE,
         clip_duration: float = CLIP_DURATION,
         piano_roll_fs: int = PIANO_ROLL_FS,
     ):
         self.root = Path(maestro_root)
         self.year = year
+        self.limit = limit
         self.sr = sr
         self.clip_duration = clip_duration
         self.clip_samples = int(sr * clip_duration)
@@ -51,25 +54,35 @@ class MAESTRODataLoader:
             meta = json.load(f)
         self.metadata = pd.DataFrame(meta)
 
-    def get_pairs(self, split: str = "train") -> List[dict]:
+        # Ensure we always store a list-like in self.year
+        if isinstance(year, int):
+            self.year = [year]
+        if year == 'all':
+            self.year = [2004, 2006, 2008, 2009, 2011, 2013, 2014, 2015, 2017, 2018]
+
+
+    def get_pairs(
+        self,
+        split: str = "train",
+        ) -> list[dict]:
         """
         Returns list of {audio_path, midi_path, duration} dicts for a split.
         split: 'train' | 'validation' | 'test'
         """
         subset = self.metadata[self.metadata["split"] == split]
-        subset = subset[self.metadata['year'] == self.year]
+        # Only get data for a specific (list of) year(s) or all
+        subset = subset[self.metadata['year'].isin(self.year)]
         pairs = []
         for _, row in subset.iterrows():
-            bb_audio_root = Path('data/mp3s')
-            bb_midi_root =  Path('data/midis')
-
-            audio_no_wav = row['audio_filename'].replace('.wav', '.mp3')
             pairs.append({
-                "audio_path": str(bb_audio_root / audio_no_wav),
-                "midi_path":  str(bb_midi_root / row["midi_filename"]),
-                "duration":   row["duration"],
+                "audio_path": str(self.root / 'mp3s' / row['audio_filename'].replace('.wav', '.mp3')),
+                "midi_path": str(self.root / 'midis' / row["midi_filename"]),
+                "duration": row["duration"],
             })
-        pairs = pairs[:2]
+
+        if self.limit is not None:
+            pairs = pairs[:self.limit]
+
         print(f"[MAESTRODataLoader] {split}: {len(pairs)} files found.")
         return pairs
 

@@ -1,8 +1,8 @@
 import librosa
 import numpy as np
 
-from constants import *
-from helpers import *
+from sheets.constants import *
+from sheets.helpers import *
 
 
 class Augmentor:
