@@ -8,8 +8,6 @@ import pretty_midi
 import tensorflow as tf
 from pathlib import Path
 
-from typing import override
-
 from sheets.constants import *
 from sheets.helpers import *
 
@@ -45,7 +43,6 @@ class CQTPreprocessor(Preprocessor):
         self.bins_per_octave = bins_per_octave
         self.fmin = fmin
 
-    @override
     def compute(self, audio: np.ndarray) -> np.ndarray:
         """
         Args:
