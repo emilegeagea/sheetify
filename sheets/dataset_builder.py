@@ -1,9 +1,9 @@
 import tensorflow as tf
 
-from augmentor import *
-from constants import *
-from dataloader import *
-from preprocessors import *
+from sheets.augmentor import *
+from sheets.constants import *
+from sheets.dataloader import *
+from sheets.preprocessors import *
 
 
 def build_tf_dataset(

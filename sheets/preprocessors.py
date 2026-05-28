@@ -6,8 +6,10 @@ import glob
 import matplotlib.pyplot as plt
 import pretty_midi
 import tensorflow as tf
+
 from pathlib import Path
-import constants.py
+
+from sheets.constants import *
 
 
 class CQTPreprocessor:
