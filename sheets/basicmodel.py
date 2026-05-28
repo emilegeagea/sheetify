@@ -41,6 +41,7 @@ def initialize_model(
 
     # --- Add Positional Tracking for the Transformer ---
     # 1. Instantiate the embedding layer OUTSIDE so Keras tracks its weights
+    # TODO: Check whether this input_dim can be lowered or added dynamically
     pos_embedding_layer = tf.keras.layers.Embedding(input_dim=400, output_dim=256)
 
     # 2. Use a Lambda layer to wrap the raw TensorFlow ops (tf.shape, tf.range)
@@ -103,12 +104,24 @@ def compile_model(
             pos_weight=10.0
         )
 
+
+    class FlattenedFBetaScore(tf.keras.metrics.FBetaScore):
+        def update_state(self, y_true, y_pred, sample_weight=None):
+            # Dynamically reshape 3D tensors (None, 88, 1000) to 2D (None, 88000)
+            y_true_flat = tf.reshape(y_true, [-1, 88 * 1000])
+            y_pred_flat = tf.reshape(y_pred, [-1, 88 * 1000])
+
+            return super().update_state(y_true_flat, y_pred_flat, sample_weight)
+
+    # Use this in your model.compile() setup:
+    # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[FlattenedFBetaScore(beta=1.0)])
+
     optimizer = optimizers.Adam(learning_rate=learning_rate)
 
     model.compile(
-        loss=weighted_bce,
+        loss='binary_crossentropy',
         optimizer=optimizer,
-        metrics=['accuracy'],
+        metrics=[FlattenedFBetaScore(beta=1.0, average='micro', name='fbeta')],
     )
 
     print("✅ Model compiled")
