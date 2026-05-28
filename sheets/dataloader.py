@@ -77,7 +77,10 @@ class MAESTRODataLoader:
                 "midi_path":  str(self.root / 'mp3s'  / row["midi_filename"]),
                 "duration":   row["duration"],
             })
-        pairs = pairs[:2]
+
+        if limit is not None:
+            pairs = pairs[:limit]
+
         print(f"[MAESTRODataLoader] {split}: {len(pairs)} files found.")
         return pairs
 
