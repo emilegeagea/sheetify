@@ -14,7 +14,7 @@ def build_tf_dataset(
     split: str = "train",
     batch_size: int = 16,
     augment: bool = False,
-    shuffle_buffer: int = 200,
+    shuffle_buffer: int = 10,
     prefetch: int = tf.data.AUTOTUNE,
 ) -> tf.data.Dataset:
     """

@@ -2,7 +2,11 @@ import mlflow
 
 from sheets.params import *
 
-def mlflow_run(func):
+def mlflow_run(
+    func,
+    tracking_uri=MLFLOW_TRACKING_URI,
+    experiment_name=MLFLOW_EXPERIMENT
+    ):
     """
     Generic function to log params and results to MLflow along with TensorFlow auto-logging
 
@@ -13,8 +17,8 @@ def mlflow_run(func):
     """
     def wrapper(*args, **kwargs):
         mlflow.end_run()
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-        mlflow.set_experiment(experiment_name=MLFLOW_EXPERIMENT)
+        mlflow.set_tracking_uri(tracking_uri)
+        mlflow.set_experiment(experiment_name=experiment_name)
 
         with mlflow.start_run():
             mlflow.tensorflow.autolog()

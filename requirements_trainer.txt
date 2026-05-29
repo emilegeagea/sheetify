@@ -4,7 +4,7 @@ arrow
 colorama
 librosa
 matplotlib
-mlflow
+mlflow==2.1.1
 pandas
 pillow
 pretty_midi
