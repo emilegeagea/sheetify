@@ -58,7 +58,8 @@ def build_tf_dataset(
 
     cache_dir = './.sheetify_cache'
     os.makedirs(cache_dir, exist_ok=True)
-    dataset = dataset.cache(cache_dir + f"/cache_{split}")   # cache on disk after first epoch
+    preprocessor_name = type(preprocessor).__name__.replace('Preprocessor', '')
+    dataset = dataset.cache(cache_dir + f"/cache_{split}_{preprocessor_name}")   # cache on disk after first epoch
 
     if split == "train":
         dataset = dataset.shuffle(shuffle_buffer)
