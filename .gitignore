@@ -1,5 +1,6 @@
 .sheetify_cache/
 data/
+models/
 
 .DS_Store
 .python-version
