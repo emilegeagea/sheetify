@@ -3,6 +3,7 @@ import numpy as np
 from tensorflow.keras.callbacks import EarlyStopping
 
 from sheets.constants import *
+from sheets.helpers import FlattenedFBetaScore
 
 
 def conv_stack(x):
@@ -82,6 +83,8 @@ def compile_model(
     model: tf.keras.Model,
     learning_rate=6e-4,
 ) -> tf.keras.Model:
+
+    fbeta = FlattenedFBetaScore(beta=1.0, average='micro', name='fbeta')
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss={
@@ -93,8 +96,8 @@ def compile_model(
             "frame_output": 1.0,
         },
         metrics={
-            "onset_output": ["accuracy"],
-            "frame_output": ["accuracy"],
+            "onset_output": ['accuracy'],
+            "frame_output": ['accuracy'],
         },
     )
 
