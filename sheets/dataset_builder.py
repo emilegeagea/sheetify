@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 
 from sheets.augmentor import Augmentor
@@ -54,6 +55,10 @@ def build_tf_dataset(
             tf.TensorSpec(shape=(N_PIANO_KEYS, roll_frames), dtype=tf.float32),
         ),
     )
+
+    cache_dir = './.sheetify_cache'
+    os.makedirs(cache_dir, exist_ok=True)
+    dataset = dataset.cache(cache_dir + f"/cache_{split}")   # cache on disk after first epoch
 
     if split == "train":
         dataset = dataset.shuffle(shuffle_buffer)
