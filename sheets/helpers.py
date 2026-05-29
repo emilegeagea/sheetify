@@ -1,6 +1,22 @@
 import numpy as np
+import tensorflow as tf
 
 from sheets.constants import *
+
+class FlattenedFBetaScore(tf.keras.metrics.FBetaScore):
+    """
+    Usage:
+    model.compile(
+        optimizer='adam',
+        loss='binary_crossentropy',
+        metrics=[FlattenedFBetaScore(beta=1.0)])
+    """
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # Dynamically reshape 3D tensors (None, 88, 1000) to 2D (None, 88000)
+        y_true_flat = tf.reshape(y_true, [-1, 88 * 1000])
+        y_pred_flat = tf.reshape(y_pred, [-1, 88 * 1000])
+
+        return super().update_state(y_true_flat, y_pred_flat, sample_weight)
 
 
 def pad_or_trim(audio: np.ndarray, length: int) -> np.ndarray:
