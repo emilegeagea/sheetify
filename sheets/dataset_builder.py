@@ -1,8 +1,12 @@
+import os
 import tensorflow as tf
 
 from sheets.augmentor import Augmentor
 from sheets.preprocessors import Preprocessor
 from sheets.dataloader import MAESTRODataLoader
+
+from sheets.target_builder import piano_roll_to_onset_frame
+
 
 from sheets.constants import *
 
@@ -55,8 +59,65 @@ def build_tf_dataset(
         ),
     )
 
+    cache_dir = './.sheetify_cache'
+    os.makedirs(cache_dir, exist_ok=True)
+    preprocessor_name = type(preprocessor).__name__.replace('Preprocessor', '')
+    dataset = dataset.cache(cache_dir + f"/cache_{split}_{preprocessor_name}")   # cache on disk after first epoch
+
     if split == "train":
         dataset = dataset.shuffle(shuffle_buffer)
+
+    dataset = (
+        dataset
+        .batch(
+            batch_size,
+            drop_remainder=False # TODO: Investigate whether this should be True or False
+                                 # When True, the model.fit raises a math.domain exception on a logarithm
+                                 # The cause of this is unknown
+        ).prefetch(prefetch)
+    )
+
+    return dataset
+
+
+
+def build_onf_dataset(
+    dataloader: MAESTRODataLoader,
+    preprocessor: Preprocessor,
+    split: str = "train",
+    batch_size: int = 16,
+    shuffle_buffer: int = 200,
+    prefetch: int = tf.data.AUTOTUNE,
+) -> tf.data.Dataset:
+    pairs = dataloader.get_pairs(split)
+
+    def generator():
+        for pair in pairs:
+            try:
+                audio, roll = dataloader.load_pair(pair)
+                preproc = preprocessor.compute(audio)
+                onf_rolls = piano_roll_to_onset_frame(roll)
+                yield preproc, (onf_rolls[0], onf_rolls[1])
+            except Exception as e:
+                print(f"[Warning] Skipping {pair['audio_path']}: {e}")
+                continue
+
+    # Infer output shapes
+    n_frames = int(CLIP_DURATION * SAMPLE_RATE / HOP_LENGTH) + 1
+    roll_frames = int(CLIP_DURATION * PIANO_ROLL_FS)
+
+    dataset = tf.data.Dataset.from_generator(
+        generator,
+        output_signature=(
+            tf.TensorSpec(shape=(N_BINS, n_frames, 1), dtype=tf.float32, name='feat_spectrogram'),
+            (tf.TensorSpec(shape=(N_PIANO_KEYS, roll_frames), dtype=tf.float32, name='target_onset_roll'),
+             tf.TensorSpec(shape=(N_PIANO_KEYS, roll_frames), dtype=tf.float32, name='target_frame_roll')
+            )
+        ),
+    )
+
+    # if split == "train":
+        # dataset = dataset.shuffle(shuffle_buffer)
 
     dataset = (
         dataset
