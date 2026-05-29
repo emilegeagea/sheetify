@@ -1,7 +1,12 @@
 import music21
 from showscore import show
+import sheets.utils.pianoroll_audio as pr_audio
 
-def midi_to_note2(input_prettymidiobject, time_signature='4/4'):
+# pm = pr_audio.numpy_to_midi_object(roll)
+# midi_to_note2(pm)
+
+
+def midi_to_note2(input_numpyarray, time_signature='4/4'):
     """
     Converts a pretty_midi object into a clean, human-readable 
     two-handed (Grand Staff) piano score within a Jupyter notebook.
@@ -9,11 +14,14 @@ def midi_to_note2(input_prettymidiobject, time_signature='4/4'):
     It applies aggressive quantization, key detection, and duration 
     rounding to eliminate common visual clutter caused by raw human MIDI data.
     """
-    # 1. MIDI Handoff to music21
-    # pretty_midi objects cannot be parsed directly by music21. 
+    # 1. Numpy array(piano roll) > MIDI > Handoff to music21
+    # pretty_midi objects & piano roll cannot be parsed directly by music21. 
     # We write the object to a temporary file on disk so music21 can read it.
+    
+    input_midi_object = pr_audio.numpy_to_midi_object(input_numpyarray)
+    
     temp_filename = 'temp_presentation_live.mid'
-    input_prettymidiobject.write(temp_filename)
+    input_midi_object.write(temp_filename)
         
     # Read and parse the MIDI file into an internal music21 Stream structure
     score = music21.converter.parse(temp_filename)
