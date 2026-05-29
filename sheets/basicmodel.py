@@ -5,6 +5,7 @@ from keras.callbacks import EarlyStopping
 from colorama import Fore, Style
 
 from sheets.constants import *
+from sheets.helpers import FlattenedFBetaScore
 
 def initialize_model(
     n_bins=N_BINS,
@@ -103,18 +104,6 @@ def compile_model(
             logits=tf.math.log(y_pred / (1.0 - y_pred + 1e-7) + 1e-7), # convert back to logits safely
             pos_weight=10.0
         )
-
-
-    class FlattenedFBetaScore(tf.keras.metrics.FBetaScore):
-        def update_state(self, y_true, y_pred, sample_weight=None):
-            # Dynamically reshape 3D tensors (None, 88, 1000) to 2D (None, 88000)
-            y_true_flat = tf.reshape(y_true, [-1, 88 * 1000])
-            y_pred_flat = tf.reshape(y_pred, [-1, 88 * 1000])
-
-            return super().update_state(y_true_flat, y_pred_flat, sample_weight)
-
-    # Use this in your model.compile() setup:
-    # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[FlattenedFBetaScore(beta=1.0)])
 
     optimizer = optimizers.Adam(learning_rate=learning_rate)
 
