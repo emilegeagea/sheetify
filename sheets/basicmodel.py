@@ -5,6 +5,7 @@ from keras.callbacks import EarlyStopping
 from colorama import Fore, Style
 
 from sheets.constants import *
+from sheets.helpers import FlattenedFBetaScore
 
 def initialize_model(
     n_bins=N_BINS,
@@ -41,6 +42,7 @@ def initialize_model(
 
     # --- Add Positional Tracking for the Transformer ---
     # 1. Instantiate the embedding layer OUTSIDE so Keras tracks its weights
+    # TODO: Check whether this input_dim can be lowered or added dynamically
     pos_embedding_layer = tf.keras.layers.Embedding(input_dim=400, output_dim=256)
 
     # 2. Use a Lambda layer to wrap the raw TensorFlow ops (tf.shape, tf.range)
@@ -106,9 +108,9 @@ def compile_model(
     optimizer = optimizers.Adam(learning_rate=learning_rate)
 
     model.compile(
-        loss=weighted_bce,
+        loss='binary_crossentropy',
         optimizer=optimizer,
-        metrics=['accuracy'],
+        metrics=[FlattenedFBetaScore(beta=1.0, average='micro', name='fbeta')],
     )
 
     print("✅ Model compiled")
