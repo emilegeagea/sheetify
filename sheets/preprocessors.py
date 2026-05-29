@@ -60,7 +60,7 @@ class CQTPreprocessor(Preprocessor):
             n_bins=self.n_bins,
             bins_per_octave=self.bins_per_octave,
         )
-        # Convert to dB scale
+        # Convert to dB scale, with CQT we should use amplitude_to_db
         cqt_db = librosa.amplitude_to_db(np.abs(cqt), ref=np.max)
 
         # Normalize to [0, 1]
@@ -86,21 +86,20 @@ class CQTPreprocessor(Preprocessor):
         return cqt
 
 
-class MELPreprocessor:
-    def __init__(self,
-                 slice_duration: float = CLIP_DURATION,
-                 n_mels: int = N_MELS,
-                 n_fft: int = 2048,
-                 hop_length: int = HOP_LENGTH,
-                 sr: int = SAMPLE_RATE):
-        self.slice_duration = slice_duration
-        self.n_mels = n_mels
-        self.n_fft = n_fft
-        self.hop_length = hop_length
+class MELPreprocessor(Preprocessor):
+    def __init__(
+        self,
+        sr: int = SAMPLE_RATE,
+        hop_length: int = HOP_LENGTH,
+        n_fft: int = 2048,
+        n_mels: int = N_MELS,
+    ):
         self.sr = sr
-        self.clip_samples = int(sr * slice_duration)
+        self.hop_length = hop_length
+        self.n_fft = n_fft
+        self.n_mels = n_mels
 
-    def compute_mel(self, audio: np.ndarray) -> np.ndarray:
+    def compute(self, audio: np.ndarray) -> np.ndarray:
         """
         Converts raw audio waveform → normalized log-mel spectrogram.
 
@@ -114,129 +113,24 @@ class MELPreprocessor:
         mel_spec = librosa.feature.melspectrogram(
             y=audio,
             sr=self.sr,
-            n_mels=self.n_mels,
-            n_fft=self.n_fft,
             hop_length=self.hop_length,
+            n_fft=self.n_fft,
+            n_mels=self.n_mels,
         )
+        # Convert to dB scale, as we are using the default power=2.0 in calculating
+        # the melspectrogram, we should use power_to_db
         mel_db = librosa.power_to_db(mel_spec, ref=np.max)
 
-        # Normalize to [0, 1] — same as CQT pipeline
+        # Normalize to [0, 1]
         mel_min, mel_max = mel_db.min(), mel_db.max()
         if mel_max > mel_min:
             mel_db = (mel_db - mel_min) / (mel_max - mel_min)
         else:
             mel_db = np.zeros_like(mel_db)
 
-        # Add channel dim → (n_mels, frames, 1)
+        # Add channel dim for Conv2D compatibility → (n_mels, frames, 1)
         return mel_db[:, :, np.newaxis].astype(np.float32)
 
-    def load_pair(
-        self,
-        audio_path: str,
-        midi_path: str,
-        start_sec: float = None,
-    ):
-        """
-        Load one (mel_spectrogram, piano_roll) pair.
-        Same interface as MAESTRODataLoader.load_pair() for easy comparison.
-
-        Returns:
-            mel  : float32 (N_MELS, time_frames, 1)
-            roll : float32 (88, piano_roll_frames)
-        """
-        # Get duration for random start
-        duration = librosa.get_duration(path=audio_path)
-        max_start = max(0.0, duration - self.slice_duration)
-        if start_sec is None:
-            start_sec = np.random.uniform(0, max_start)
-
-        # Load audio — resample to 16kHz mono (same as CQT pipeline)
-        audio, _ = librosa.load(
-            audio_path,
-            sr=self.sr,
-            mono=True,
-            offset=start_sec,
-            duration=self.slice_duration,
-        )
-        audio = pad_or_trim(audio)
-
-        # Compute mel spectrogram
-        mel = self.compute_mel(audio)
-
-        # Load MIDI → piano roll
-        midi = pretty_midi.PrettyMIDI(midi_path)
-        roll = midi.get_piano_roll(fs=PIANO_ROLL_FS)
-        frame_start = int(start_sec * PIANO_ROLL_FS)
-        frame_end = frame_start + int(self.slice_duration * PIANO_ROLL_FS)
-        roll = roll[:, frame_start:frame_end]
-        roll = roll[PIANO_MIN_PITCH:PIANO_MAX_PITCH + 1, :]
-        roll = (roll > 0).astype(np.float32)
-        roll = self.pad_or_trim_roll(roll)
-
-        return mel, roll
-
-    def build_tf_dataset(
-        self,
-        maestro_root: str,
-        split: str = "train",
-        batch_size: int = 16,
-        shuffle_buffer: int = 200,
-        prefetch: int = tf.data.AUTOTUNE,
-    ) -> tf.data.Dataset:
-        """
-        Same interface as build_tf_dataset() in maestro_pipeline_CQT.py.
-        Produces (mel_spectrogram, piano_roll) batches instead of (CQT, piano_roll).
-        """
-        import json
-        import pandas as pd
-
-        meta_path = next(Path(maestro_root).glob("*.json"))
-        with open(meta_path) as f:
-            meta = json.load(f)
-        df = pd.DataFrame(meta)
-        subset = df[df["split"] == split]
-
-        pairs = []
-        for _, row in subset.iterrows():
-            pairs.append({
-                # "audio_path": str(Path(maestro_root) / row["audio_filename"]).replace(".wav", ".mp3")
-                "audio_path": "midi.mp3",
-                # "midi_path":  str(Path(maestro_root) / row["midi_filename"]),
-                "midi_path" : "midi.mid",
-                # "duration":   row["duration"],
-                "duration" : 26
-            })
-        pairs = pairs[:2]
-
-        print(f"[MelPipeline] {split}: {len(pairs)} files found.")
-
-        pipeline = self
-
-        def generator():
-            for pair in pairs:
-                try:
-                    mel, roll = pipeline.load_pair(pair["audio_path"], pair["midi_path"])
-                    yield mel, roll
-                except Exception as e:
-                    print(f"[Warning] Skipping {pair['audio_path']}: {e}")
-                    continue
-
-        n_frames = int(self.slice_duration * self.sr / self.hop_length) + 1
-        roll_frames = int(self.slice_duration * PIANO_ROLL_FS)
-
-        dataset = tf.data.Dataset.from_generator(
-            generator,
-            output_signature=(
-                tf.TensorSpec(shape=(self.n_mels, n_frames, 1), dtype=tf.float32),
-                tf.TensorSpec(shape=(N_PIANO_KEYS, roll_frames),  dtype=tf.float32),
-            ),
-        )
-
-        if split == "train":
-            dataset = dataset.shuffle(shuffle_buffer)
-
-        dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(prefetch)
-        return dataset
 
     def save_mel_spec_images(
         self,
@@ -263,6 +157,7 @@ class MELPreprocessor:
 
     def split_audio(self, file_path: str) -> np.ndarray:
         """Original method preserved — splits full audio into mel spectrogram slices."""
+        self.slice_duration = CLIP_DURATION
         total_duration = librosa.get_duration(path=file_path)
         total_slices = math.floor(total_duration / self.slice_duration)
         n_frames = (self.slice_duration * self.sr) // self.hop_length + 1
