@@ -1,4 +1,5 @@
-.sheetify_cache
+.sheetify_cache/
+data/
 
 .DS_Store
 .python-version
