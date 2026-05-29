@@ -30,9 +30,10 @@ def predict_pair(
     preproc = preprocessor.compute(audio)
 
     preproc_input = np.expand_dims(preproc, axis=0)    # (1, 84, 313, 1)
-    roll_input = np.expand_dims(roll, axis=0)  # (1, 88, 1000)
 
     pred = model.predict(preproc_input, verbose=0)
+    if isinstance(pred, list):
+        pred = pred[1]
 
     pred_reshaped = np.reshape(pred, newshape=(88, 1000))
     roll_reshaped = np.reshape(roll, newshape=(88, 1000))
