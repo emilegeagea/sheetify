@@ -3,12 +3,10 @@ import tensorflow as tf
 import math
 
 from sheets.augmentor import Augmentor
-
-from sheets.preprocessors import Preprocessor
-from sheets.dataloader import MAESTRODataLoader
-from sheets.target_builder import piano_roll_to_onset_frame
-
 from sheets.constants import *
+from sheets.dataloader import MAESTRODataLoader
+from sheets.preprocessors import Preprocessor
+from sheets.target_builder import piano_roll_to_onset_frame
 
 
 def build_tf_dataset(
