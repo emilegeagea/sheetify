@@ -11,3 +11,6 @@ pretty_midi
 pyarrow
 scikit-learn
 scipy
+google-cloud-storage
+google-api-core
+googleapis-common-protos

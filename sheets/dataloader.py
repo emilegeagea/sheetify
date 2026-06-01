@@ -59,6 +59,8 @@ class MAESTRODataLoader:
             self.year = [year]
         if year == 'all':
             self.year = [2004, 2006, 2008, 2009, 2011, 2013, 2014, 2015, 2017, 2018]
+        elif isinstance(year, str):
+            self.year = [int(year)]
 
 
     def get_pairs(
@@ -83,7 +85,7 @@ class MAESTRODataLoader:
         if self.limit is not None:
             pairs = pairs[:self.limit]
 
-        print(f"[MAESTRODataLoader] {split}: {len(pairs)} files found.")
+        print(f"✅ [MAESTRODataLoader] {split}: {len(pairs)} files found.")
         return pairs
 
     def load_pair(

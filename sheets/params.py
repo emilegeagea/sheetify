@@ -2,9 +2,11 @@ import os
 
 ##################  VARIABLES  ##################
 MODEL_TARGET = os.environ.get("MODEL_TARGET")
+YEAR_LIMIT = os.environ.get("YEAR_LIMIT", "all")
 # Local data storage
-LOCAL_DATA_PATH = os.path.join(os.path.expanduser('~'), ".lewagon", "mlops", "data")
-LOCAL_REGISTRY_PATH =  os.path.join(os.path.expanduser('~'), ".lewagon", "mlops", "training_outputs")
+ML_DIR = os.environ.get("ML_DIR")
+LOCAL_DATA_PATH = os.path.join(ML_DIR, "data")
+LOCAL_REGISTRY_PATH =  os.path.join(ML_DIR, "training_outputs")
 # GCP Project
 GCP_PROJECT = os.environ.get("GCP_PROJECT")
 GCP_REGION = os.environ.get("GCP_REGION")

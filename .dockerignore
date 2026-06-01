@@ -1,0 +1,33 @@
+# Ignore your specific local data and cache folders
+data/
+models/
+scrapbook/
+.cache/
+pip-cache/
+.pip/
+*.ipynb
+
+# Ignore Python environment and runtime artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.tox/
+.mypy_cache/
+
+# Ignore IDE and OS metadata
+.vscode/
+.idea/
+.git
+.gitignore
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db

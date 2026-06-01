@@ -18,11 +18,12 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 @mlflow_run
 def train(
     limit=None,
-    batch_size=8,
+    year=YEAR_LIMIT,
+    batch_size=32,
     patience=5,
-    epochs=20
+    epochs=200
 ):
-    dataloader = MAESTRODataLoader(limit=limit)
+    dataloader = MAESTRODataLoader(limit=limit, year=year)
     preprocessor = CQTPreprocessor()
 
     train_ds = build_tf_dataset(
@@ -50,7 +51,8 @@ def train(
         train_ds,
         validation_data=val_ds,
         epochs=epochs,
-        callbacks=[checkpoint_callback],
+        callbacks=[es, checkpoint_callback],
+        verbose=2
     )
 
     # Save model locally

@@ -28,18 +28,19 @@ def save_results(params: dict, metrics: dict) -> None:
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     # Save params locally
-    if params is not None:
-        params_path = os.path.join(LOCAL_REGISTRY_PATH, "params", timestamp + ".pickle")
-        with open(params_path, "wb") as file:
-            pickle.dump(params, file)
+    if MODEL_TARGET == "local":
+        if params is not None:
+            params_path = os.path.join(LOCAL_REGISTRY_PATH, "params", timestamp + ".pickle")
+            with open(params_path, "wb") as file:
+                pickle.dump(params, file)
 
-    # Save metrics locally
-    if metrics is not None:
-        metrics_path = os.path.join(LOCAL_REGISTRY_PATH, "metrics", timestamp + ".pickle")
-        with open(metrics_path, "wb") as file:
-            pickle.dump(metrics, file)
+        # Save metrics locally
+        if metrics is not None:
+            metrics_path = os.path.join(LOCAL_REGISTRY_PATH, "metrics", timestamp + ".pickle")
+            with open(metrics_path, "wb") as file:
+                pickle.dump(metrics, file)
 
-    print("✅ Results saved locally")
+        print("✅ Results saved locally")
 
 
 def save_model(model: keras.Model = None) -> None:
@@ -54,7 +55,6 @@ def save_model(model: keras.Model = None) -> None:
     # Save model locally
     model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.h5")
     model.save(model_path)
-
     print("✅ Model saved locally")
 
     if MODEL_TARGET == "gcs":
