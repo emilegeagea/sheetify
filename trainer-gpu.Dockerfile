@@ -12,7 +12,7 @@ WORKDIR /code
 
 # General utils
 RUN apt update
-RUN apt install -y --no-install-recommends make git
+RUN apt install -y --no-install-recommends make git unzip
 
 RUN apt install -y --no-install-recommends \
     python3 \
@@ -38,8 +38,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY sheets /code/sheets
 COPY Makefile /code/Makefile
-
-RUN apt install -y unzip
 
 # Mount maestro data folder to /code/data via Cloud Storage FUSE
 CMD ["make", "unzip_and_train"]

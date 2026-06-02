@@ -96,8 +96,8 @@ def compile_model(
             "frame_output": 1.0,
         },
         metrics={
-            "onset_output": ['accuracy'],
-            "frame_output": ['accuracy'],
+            "onset_output": [],
+            "frame_output": [],
         },
     )
 

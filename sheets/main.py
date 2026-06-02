@@ -14,6 +14,7 @@ from sheets.utils.registry import mlflow_run, save_model, save_results
 
 import time
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+import tensorflow as tf
 
 @mlflow_run
 def train(
@@ -35,11 +36,9 @@ def train(
     model = basicmodel.compile_model(model)
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
+    checkpoint_filepath = f'./models/{timestamp}.keras'
     checkpoint_callback = ModelCheckpoint(
-        filepath=f'./models/{timestamp}.weights.h5',
-        save_weights_only=True,
-        # monitor='val_fbeta',
-        mode='max',
+        filepath=checkpoint_filepath,
         save_best_only=True
     )
 
@@ -55,8 +54,14 @@ def train(
         verbose=2
     )
 
+    # Load the best weights
+    model = tf.keras.models.load_model(
+        checkpoint_filepath,
+        safe_mode=False
+        )
+
     # Save model locally
-    # model_path = os.path.join("./models", f"{timestamp}.h5")
+    # model_path = os.path.join("./models", f"{timestamp}.keras")
     # model.save(model_path)
 
 

@@ -4,7 +4,7 @@
 # 	python -c 'from taxifare.interface.main import preprocess; preprocess()'
 #
 run_train:
-	python -c 'from sheets.main import train; train()'
+	python -c 'from sheets.main import train; import tensorflow as tf; print(tf.config.list_physical_devices("GPU")); train()'
 #
 # run_pred:
 # 	python -c 'from taxifare.interface.main import pred; pred()'
@@ -21,7 +21,7 @@ download_and_train: reset_local_files download_gcs_files run_train
 
 # download_unzip_train: reset_local_files download_gcs_files unzip_dl_to_data run_train
 
-unzip_and_train: unzip_mounted_to_data run_train
+unzip_and_train: reset_local_files unzip_mounted_to_data run_train
 
 ##################### TESTS #####################
 test_gcp_setup:
