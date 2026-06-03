@@ -5,7 +5,7 @@ from typing import Tuple
 
 def numpy_to_midi_object(
     piano_roll_88,
-    fs: int = 50,
+    fs: int = 100,
     threshold: float = 0.5
     ) -> pretty_midi.PrettyMIDI:
     """
@@ -97,3 +97,10 @@ def midi_object_to_playable(
           ''')
 
     return audio_data, sample_rate
+
+def numpy_to_playable(
+    piano_roll: np.ndarray,
+):
+    mo = numpy_to_midi_object(piano_roll)
+    pm = midi_object_to_playable(mo)
+    return pm
