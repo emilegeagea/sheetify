@@ -9,6 +9,7 @@ from typing import Optional, Literal
 
 from sheets.constants import *
 import sheets.helpers as helpers
+from sheets.preprocessors import Preprocessor
 
 
 class MAESTRODataLoader:
@@ -101,6 +102,59 @@ class MAESTRODataLoader:
         clip_i = int(start_sec / self.clip_duration)
         rel = Path(pair["audio_path"]).relative_to(self.root / "mp3s").with_suffix("")
         return self.precomputed_cqt_root / rel.parent / f"{rel.name}_{clip_i:05d}.npy"
+
+
+
+    def load_CQT(
+        self,
+        pair: dict,
+        start_sec: float,
+        preprocessor: Preprocessor,
+    ) -> np.ndarray:
+        """Load only a (precomputed) spectrogram"""
+        cqt_path = self._precomputed_cqt_path(pair, start_sec)
+        if cqt_path.exists():
+            # print(f'🔋 Dataloader: Precomputed CQT found : {pair["audio_path"]=}')
+            cqt = np.load(cqt_path).astype(np.float32)
+        else:
+            print(f'🪫 Dataloader: No precomputed CQT : {pair["audio_path"]=}')
+            audio, _ = librosa.load(
+                pair["audio_path"],
+                sr=self.sr,
+                mono=True,
+                offset=start_sec,
+                duration=self.clip_duration,
+            )
+            audio = helpers.pad_or_trim(audio, self.clip_samples)
+            cqt = preprocessor.compute(audio)
+        return cqt
+
+
+    def load_roll(
+        self,
+        pair: dict,
+        start_sec: float,
+    ) -> np.ndarray:
+        """Load only a (precomputed) pianoroll."""
+        roll_path = self._precomputed_roll_path(pair, start_sec)
+        if roll_path.exists():
+            # print(f'🔋 Dataloader: Precomputed pianrolls found : {pair["midi_path"]=}')
+            roll = np.load(roll_path).astype(np.float32)
+        else:
+            print(f'🪫 Dataloader: No precomputed pianorolls : {pair["midi_path"]=}')
+            midi = pretty_midi.PrettyMIDI(pair["midi_path"])
+            roll = midi.get_piano_roll(fs=self.piano_roll_fs)
+            frame_start = int(start_sec * self.piano_roll_fs)
+            frame_end = frame_start + int(self.clip_duration * self.piano_roll_fs)
+            roll = roll[:, frame_start:frame_end]
+            roll = roll[PIANO_MIN_PITCH : PIANO_MAX_PITCH + 1, :]
+            roll = (roll > 0).astype(np.float32)
+            target_frames = int(self.clip_duration * self.piano_roll_fs)
+            roll = helpers.pad_or_trim_2d(roll, target_frames, axis=1)
+
+        return roll
+
+
 
     def load_pair(
         self,

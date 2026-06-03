@@ -98,8 +98,10 @@ def build_tf_dataset(
                 split_starts = [CLIP_DURATION * idx for idx in range(num_splits)]
                 for split_start in split_starts:
                     try:
-                        audio, roll = dataloader.load_pair(pair, split_start)
-                        preproc = preprocessor.compute(audio)
+                        # audio, roll = dataloader.load_pair(pair, split_start)
+                        # preproc = preprocessor.compute(audio)
+                        roll = dataloader.load_roll(pair, split_start)
+                        preproc = dataloader.load_CQT(pair, split_start, preprocessor=preprocessor)
                         yield preproc, roll
                     except Exception as e:
                         print(
