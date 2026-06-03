@@ -20,7 +20,7 @@ with warnings.catch_warnings():
     from google.cloud import storage
 
 
-BUCKET_NAME = "bobbybobster_sheetify"
+BUCKET_NAME = "sheetify_bobbybobster"
 DATA_ROOT = Path("./data")
 OUT_ROOT = DATA_ROOT / "precomputed_cqt"
 preprocessor = CQTPreprocessor()
@@ -46,7 +46,7 @@ async def async_main(bucket):
     clip_samples = int(SAMPLE_RATE * CLIP_DURATION)
 
     # for year in [2004, 2006, 2008, 2009, 2011, 2013, 2014, 2015, 2017, 2018]:
-    for year in [2018]:
+    for year in [2004]:
         print(f"📥 Precomputing year {year}")
         loader = MAESTRODataLoader(DATA_ROOT, year=year)
         for split in ("train", "validation", "test"):
@@ -55,6 +55,7 @@ async def async_main(bucket):
                 n_clips = math.floor(pair["duration"] / CLIP_DURATION)
                 for i in range(n_clips):
                     path = cqt_path(pair["audio_path"], i)
+                    # TODO: Fix this to check GCS bucket for existence
                     if path.exists():
                         continue
                     audio, _ = librosa.load(

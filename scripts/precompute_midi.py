@@ -22,7 +22,7 @@ with warnings.catch_warnings():
     from google.cloud import storage
 
 
-BUCKET_NAME = "bobbybobster_sheetify"
+BUCKET_NAME = "sheetify_bobbybobster"
 DATA_ROOT = Path("./data")
 OUT_ROOT = DATA_ROOT / "precomputed_rolls"
 
