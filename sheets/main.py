@@ -21,7 +21,7 @@ def train(
     limit=None,
     year=YEAR_LIMIT,
     batch_size=32,
-    patience=5,
+    patience=10,
     epochs=200
 ):
     dataloader = MAESTRODataLoader(limit=limit, year=year)
