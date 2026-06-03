@@ -23,6 +23,12 @@ download_and_train: reset_local_files download_gcs_files run_train
 
 unzip_and_train: reset_local_files unzip_mounted_to_data run_train
 
+precompute_midi:
+	python scripts/precompute_midi.py
+
+precompute_cqt:
+	python scripts/precompute_cqt.py
+
 ##################### TESTS #####################
 test_gcp_setup:
 	@pytest \
