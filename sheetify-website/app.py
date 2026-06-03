@@ -8,6 +8,7 @@ import librosa
 import numpy as np
 import keras.src.layers.layer as _layer_module
 import os
+import pretty_midi  # Fixed: Required for clean_piano_roll execution
 
 # Internal project modules
 # from sheets.main import run_prediction, load_ml_model
@@ -24,6 +25,7 @@ st.markdown('''
 Turning mp3 into sheet music.
 ''')
 
+# --- PREPROCESSING & MODEL FUNCTIONS ---
 
 def preprocess(uploaded_file):
     audio_data, sampling_rate = librosa.load(uploaded_file, sr=16_000, duration=10)
@@ -61,11 +63,91 @@ def postprocess(prediction_output):
     binary_piano_roll = (binary_piano_roll / 255).astype(np.int32)
     return binary_piano_roll
 
+def clean_piano_roll(piano_roll, fs=100, min_duration_ms=150, max_gap_ms=100):
+    min_frames = int(min_duration_ms / 1000 * fs)
+    max_gap_frames = int(max_gap_ms / 1000 * fs)
+    cleaned = np.zeros_like(piano_roll)
+
+    # ── Step 1: Find main pitch range ───────────────
+    activity = piano_roll.sum(axis=1)
+    main_key = np.argmax(activity)
+    pitch_tolerance = 15
+    pitch_min = max(0,  main_key - pitch_tolerance)
+    pitch_max = min(87, main_key + pitch_tolerance)
+
+    for key in range(pitch_min, pitch_max + 1):
+        row = piano_roll[key].copy()
+
+        # ── Step 2: Fill short gaps ──────────────────
+        changes = np.diff(row, prepend=0, append=0)
+        onsets  = np.where(changes == 1)[0]
+        offsets = np.where(changes == -1)[0]
+
+        for i in range(len(onsets) - 1):
+            if onsets[i+1] - offsets[i] <= max_gap_frames:
+                row[offsets[i]:onsets[i+1]] = 1.0
+
+        # ── Step 3: Remove short notes ───────────────
+        changes = np.diff(row, prepend=0, append=0)
+        onsets  = np.where(changes == 1)[0]
+        offsets = np.where(changes == -1)[0]
+
+        for start, end in zip(onsets, offsets):
+            if (end - start) >= min_frames:
+                cleaned[key, start:end] = 1.0
+
+    # ── Step 4: Piano roll → MIDI ───────────────────
+    midi = pretty_midi.PrettyMIDI()
+    piano = pretty_midi.Instrument(program=0)
+
+    for key in range(88):
+        midi_pitch = key + 21
+        row = cleaned[key]
+        changes = np.diff(row, prepend=0, append=0)
+        onsets  = np.where(changes == 1)[0]
+        offsets = np.where(changes == -1)[0]
+
+        for start, end in zip(onsets, offsets):
+            note = pretty_midi.Note(
+                velocity=80,
+                pitch=midi_pitch,
+                start=start / fs,
+                end=end / fs,
+            )
+            piano.notes.append(note)
+
+    midi.instruments.append(piano)
+
+    # ── Step 5: Note-based cleaning (velocity + duration) ──
+    for instrument in midi.instruments:
+        instrument.notes = [
+            note for note in instrument.notes
+            if (note.end - note.start) > 0.04  # remove notes < 40ms
+            and note.velocity > 15              # remove very quiet notes
+        ]
+
+    # ── Step 6: MIDI → cleaned piano roll ───────────
+    roll = midi.get_piano_roll(fs=fs)
+    roll = roll[21:109, :]
+    roll = (roll > 0).astype(np.float32)
+
+    # Match original length
+    target = piano_roll.shape[1]
+    if roll.shape[1] < target:
+        roll = np.pad(roll, ((0,0), (0, target - roll.shape[1])))
+    else:
+        roll = roll[:, :target]
+
+    return roll, midi
+
 def run_prediction(uploaded_file, model):
     preprocessed_data = preprocess(uploaded_file)
     pred_output = predict(preprocessed_data)
     post_pros = postprocess(pred_output)
-    return post_pros
+
+    # Fixed: Unpacking tuple correctly so we only return the target matrix to components
+    cleaned_roll, midi_obj = clean_piano_roll(post_pros)
+    return cleaned_roll
 
 # --- RENDERING & UI VISUALIZATION FUNCTIONS ---
 
@@ -87,7 +169,15 @@ def plot_pianoroll(piano_roll: np.ndarray) -> None:
 # --- MAIN APP LOGIC LOOP ---
 
 uploaded_file = st.file_uploader("Choose an mp3 file", type="mp3")
-path = "/code/models/2004-allsplits-onf.keras" # make sure maybe we need to use SYS library to access the path correctly since this is not going to be the same path on Docker container
+
+# Fixed: Cloud-Run/Docker safe dynamic path lookup fallback
+# local_path = "/home/pom/code/emilegeagea/sheetify/2004-allsplits-onf.keras"
+local_path = "/code/models/2004-allsplits-onf.keras" # make sure maybe we need to use SYS library to access the path correctly since this is not going to be the same path on Docker container
+if os.path.exists(local_path):
+    path = local_path
+else:
+    # Looks for the file inside your container directory relative to app.py
+    path = os.path.join(os.path.dirname(__file__), "2004-allsplits-onf.keras")
 
 @st.cache_resource
 def get_cached_model(model_path):
@@ -134,7 +224,7 @@ if uploaded_file is not None:
                     # Present a secure download button for the generated PDF binary
                     st.success("PDF sheet music generated successfully!")
                     st.download_button(
-                        label="📄 Download Sheet Music PDF",
+                        label=":page_facing_up: Download Sheet Music PDF",
                         data=pdf_bytes,
                         file_name="transcribed_score.pdf",
                         mime="application/pdf"
