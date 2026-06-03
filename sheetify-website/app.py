@@ -24,7 +24,6 @@ st.markdown('''
 Turning mp3 into sheet music.
 ''')
 
-# --- PREPROCESSING & MODEL FUNCTIONS ---
 
 def preprocess(uploaded_file):
     audio_data, sampling_rate = librosa.load(uploaded_file, sr=16_000, duration=10)
@@ -88,7 +87,7 @@ def plot_pianoroll(piano_roll: np.ndarray) -> None:
 # --- MAIN APP LOGIC LOOP ---
 
 uploaded_file = st.file_uploader("Choose an mp3 file", type="mp3")
-path = "/home/pom/code/emilegeagea/sheetify/2004-allsplits-onf.keras"
+path = "/home/pom/code/emilegeagea/sheetify/2004-allsplits-onf.keras" # make sure maybe we need to use SYS library to access the path correctly since this is not going to be the same path on Docker container 
 
 @st.cache_resource
 def get_cached_model(model_path):
