@@ -110,7 +110,7 @@ def build_onf_dataset(
                     print(
                         f"[Warning] Skipping {pair['audio_path']} at {split_start} seconds: {e}"
                         )
-                        continue
+                    continue
 
     # Infer output shapes
     n_frames = int(CLIP_DURATION * SAMPLE_RATE / HOP_LENGTH) + 1
