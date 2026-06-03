@@ -177,9 +177,12 @@ def build_onf_dataset(
                 split_starts = [CLIP_DURATION * idx for idx in range(num_splits)]
                 for split_start in split_starts:
                     try:
-                        audio, roll = dataloader.load_pair(pair, split_start)
-                        preproc = preprocessor.compute(audio)
+                        # audio, roll = dataloader.load_pair(pair, split_start)
+                        # preproc = preprocessor.compute(audio)
+                        roll = dataloader.load_roll(pair, split_start)
                         onf_rolls = piano_roll_to_onset_frame(roll)
+
+                        preproc = dataloader.load_CQT(pair, split_start, preprocessor=preprocessor)
                         yield preproc, (onf_rolls[0], onf_rolls[1])
                     except Exception as e:
                         print(
