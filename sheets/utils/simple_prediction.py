@@ -19,7 +19,7 @@ complex_pair = {
     'duration': 26
 }
 
-def predict_pair(
+def predict_roll(
     model,
     dataloader = MAESTRODataLoader(),
     preprocessor = CQTPreprocessor(),
@@ -37,6 +37,12 @@ def predict_pair(
 
     pred_reshaped = np.reshape(pred, newshape=(88, 1000))
     roll_reshaped = np.reshape(roll, newshape=(88, 1000))
+
+    return pred_reshaped, roll_reshaped
+
+
+def predict_pair(model, pair, **kwargs):
+    pred_reshaped, roll_reshaped = predict_roll(model, pair=pair, **kwargs)
     plotting.plot_pianoroll_in_vs_out(
         roll_reshaped,
         pred_reshaped)
