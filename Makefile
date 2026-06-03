@@ -4,7 +4,7 @@
 # 	python -c 'from taxifare.interface.main import preprocess; preprocess()'
 #
 run_train:
-	python -c 'from sheets.main import train; import tensorflow as tf; print(tf.config.list_physical_devices("GPU")); train()'
+	python -c 'from sheets.main import train; import tensorflow as tf; print(tf.config.list_physical_devices("GPU")); train(batch_size=64)'
 #
 # run_pred:
 # 	python -c 'from taxifare.interface.main import pred; pred()'
@@ -22,6 +22,8 @@ download_and_train: reset_local_files download_gcs_files run_train
 # download_unzip_train: reset_local_files download_gcs_files unzip_dl_to_data run_train
 
 unzip_and_train: reset_local_files unzip_mounted_to_data run_train
+
+symlink_and_train: reset_local_files symlink_bucket run_train
 
 precompute_midi:
 	python scripts/precompute_midi.py
@@ -70,6 +72,13 @@ unzip_mounted_to_data:
 	ln -s /tmp/training_data ./data
 	cp /mnt/gcs/data/maestro-v3.0.0.json ./data
 	ls -Al /code/data
+
+# Requires bucket to be mounted at /mnt/gcs
+symlink_bucket:
+	-rm -rf /code/data
+	ln -s /mnt/gcs/data /code/data
+	ls -Al /code/data
+	ls -AlH /code/data
 
 show_sources_all:
 # 	-ls -laR ${ML_DIR}/data

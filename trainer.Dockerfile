@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y google-cloud-cli
 COPY sheets /code/sheets
 COPY Makefile /code/Makefile
 
-CMD ["make", "unzip_and_train"]
+CMD ["make", "symlink_and_train"]
 
 
 # docker run -v ~/.config/gcloud:/root/.config/gcloud \

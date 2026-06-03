@@ -40,4 +40,4 @@ COPY sheets /code/sheets
 COPY Makefile /code/Makefile
 
 # Mount maestro data folder to /code/data via Cloud Storage FUSE
-CMD ["make", "unzip_and_train"]
+CMD ["make", "symlink_and_train"]
