@@ -27,6 +27,7 @@ class MAESTRODataLoader:
         loader = MAESTRODataLoader("path/to/maestro-v3.0.0")
         train_pairs = loader.get_pairs(split="train")
         audio, piano_roll = loader.load_pair(train_pairs[0])
+        Precomputed (optional): data/precomputed_rolls|precomputed_cqt/<midi-rel>_<clip>.npy
     """
 
     def __init__(
@@ -45,6 +46,8 @@ class MAESTRODataLoader:
         self.clip_duration = clip_duration
         self.clip_samples = int(sr * clip_duration)
         self.piano_roll_fs = piano_roll_fs
+        self.precomputed_rolls_root = self.root / "precomputed_rolls"
+        self.precomputed_cqt_root = self.root / "precomputed_cqt"
 
         # Load metadata JSON
         meta_path = self.root / "maestro-v3.0.0.json"
@@ -88,6 +91,17 @@ class MAESTRODataLoader:
         print(f"✅ [MAESTRODataLoader] {split}: {len(pairs)} files found.")
         return pairs
 
+
+    def _precomputed_roll_path(self, pair: dict, start_sec: float) -> Path:
+        clip_i = int(start_sec / self.clip_duration)
+        rel = Path(pair["midi_path"]).relative_to(self.root / "midis").with_suffix("")
+        return self.precomputed_rolls_root / rel.parent / f"{rel.name}_{clip_i:05d}.npy"
+
+    def _precomputed_cqt_path(self, pair: dict, start_sec: float) -> Path:
+        clip_i = int(start_sec / self.clip_duration)
+        rel = Path(pair["audio_path"]).relative_to(self.root / "mp3s").with_suffix("")
+        return self.precomputed_cqt_root / rel.parent / f"{rel.name}_{clip_i:05d}.npy"
+
     def load_pair(
         self,
         pair: dict,
@@ -111,7 +125,7 @@ class MAESTRODataLoader:
         if start_sec is None:
             start_sec = np.random.uniform(0, max_start)
 
-        # ── Audio ──────────────────────────────────────
+        # MP3 / AUDIO
         audio, _ = librosa.load(
             pair["audio_path"],
             sr=self.sr,
@@ -121,21 +135,22 @@ class MAESTRODataLoader:
         )
         audio = helpers.pad_or_trim(audio, self.clip_samples)
 
-        # ── Piano roll from MIDI ───────────────────────
-        midi = pretty_midi.PrettyMIDI(pair["midi_path"])
-        roll = midi.get_piano_roll(fs=self.piano_roll_fs)  # shape: (128, T)
 
-        # Trim to clip window
-        frame_start = int(start_sec * self.piano_roll_fs)
-        frame_end = frame_start + int(self.clip_duration * self.piano_roll_fs)
-        roll = roll[:, frame_start:frame_end]
-
-        # Keep only piano range A0–C8, binarize (note on/off)
-        roll = roll[PIANO_MIN_PITCH:PIANO_MAX_PITCH + 1, :]  # (88, T)
-        roll = (roll > 0).astype(np.float32)
-
-        # Pad time axis if needed
-        target_frames = int(self.clip_duration * self.piano_roll_fs)
-        roll = helpers.pad_or_trim_2d(roll, target_frames, axis=1)
+        # MIDI / PIANOROLL
+        roll_path = self._precomputed_roll_path(pair, start_sec)
+        if roll_path.exists():
+            # print(f'🔋 Dataloader: Precomputed pianrolls found : {pair["midi_path"]=}')
+            roll = np.load(roll_path).astype(np.float32)
+        else:
+            print(f'🪫 Dataloader: No precomputed pianorolls : {pair["midi_path"]=}')
+            midi = pretty_midi.PrettyMIDI(pair["midi_path"])
+            roll = midi.get_piano_roll(fs=self.piano_roll_fs)
+            frame_start = int(start_sec * self.piano_roll_fs)
+            frame_end = frame_start + int(self.clip_duration * self.piano_roll_fs)
+            roll = roll[:, frame_start:frame_end]
+            roll = roll[PIANO_MIN_PITCH : PIANO_MAX_PITCH + 1, :]
+            roll = (roll > 0).astype(np.float32)
+            target_frames = int(self.clip_duration * self.piano_roll_fs)
+            roll = helpers.pad_or_trim_2d(roll, target_frames, axis=1)
 
         return audio.astype(np.float32), roll
