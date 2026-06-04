@@ -5,6 +5,10 @@
 #
 run_train:
 	python -c 'from sheets.main import train; import tensorflow as tf; print(tf.config.list_physical_devices("GPU")); train(batch_size=64)'
+
+run_train_onf:
+	python -c 'from sheets.main import train; train(model_type="onf")'
+
 #
 # run_pred:
 # 	python -c 'from taxifare.interface.main import pred; pred()'
@@ -24,6 +28,8 @@ download_and_train: reset_local_files download_gcs_files run_train
 unzip_and_train: reset_local_files unzip_mounted_to_data run_train
 
 symlink_and_train: reset_local_files symlink_bucket run_train
+
+symlink_and_train_onf: reset_local_files symlink_bucket run_train_onf
 
 precompute_midi:
 	python scripts/precompute_midi.py

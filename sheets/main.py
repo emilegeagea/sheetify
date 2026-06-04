@@ -8,7 +8,8 @@ from sheets.params import *
 from sheets.dataloader import MAESTRODataLoader
 from sheets.preprocessors import CQTPreprocessor
 import sheets.basicmodel as basicmodel
-from sheets.dataset_builder import build_tf_dataset
+import sheets.onf_model as onf_model
+from sheets.dataset_builder import build_tf_dataset, build_onf_dataset
 
 from sheets.utils.registry import mlflow_run, save_model, save_results
 
@@ -18,6 +19,7 @@ import tensorflow as tf
 
 @mlflow_run
 def train(
+    model_type='basic',
     limit=None,
     year=YEAR_LIMIT,
     batch_size=32,
@@ -27,13 +29,28 @@ def train(
     dataloader = MAESTRODataLoader(limit=limit, year=year)
     preprocessor = CQTPreprocessor()
 
-    train_ds = build_tf_dataset(
-        dataloader, preprocessor, batch_size=batch_size, split='train')
-    val_ds = build_tf_dataset(
-        dataloader, preprocessor, batch_size=batch_size, split='validation')
+    if model_type == 'basic':
+        print('📌 Training Basic model type.')
+        train_ds = build_tf_dataset(
+            dataloader, preprocessor, batch_size=batch_size, split='train')
+        val_ds = build_tf_dataset(
+            dataloader, preprocessor, batch_size=batch_size, split='validation')
 
-    model = basicmodel.initialize_model()
-    model = basicmodel.compile_model(model)
+        model = basicmodel.initialize_model()
+        model = basicmodel.compile_model(model)
+    elif model_type == 'onf':
+        print('📌 Training ONF model type.')
+        train_ds = build_onf_dataset(
+            dataloader, preprocessor, batch_size=batch_size, split='train')
+        val_ds = build_onf_dataset(
+            dataloader, preprocessor, batch_size=batch_size, split='validation')
+
+        model = onf_model.initialize_model()
+        model = onf_model.compile_model(model)
+    else:
+        print('❌ No model type to train selected. Exiting.')
+        raise SystemExit
+
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     checkpoint_filepath = f'./models/{timestamp}.keras'
@@ -65,7 +82,10 @@ def train(
     # model.save(model_path)
 
 
-    fbeta = np.min(history.history['fbeta'])
+    try:
+        fbeta = np.min(history.history['fbeta'])
+    except Exception:
+        fbeta = 0
 
     params = dict(
         context="train",
