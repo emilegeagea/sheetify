@@ -21,7 +21,7 @@ RUN apt install -y \
     libxrender-dev
 
 
-COPY sheetify-website/app.py /code/app.py
-COPY sheets /code/sheets
 COPY models /code/models
+COPY sheets /code/sheets
+COPY sheetify-website/app.py /code/app.py
 CMD python3 -m streamlit run app.py --server.port $PORT
